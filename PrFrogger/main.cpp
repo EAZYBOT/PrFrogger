@@ -1,11 +1,77 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <vector>
+#include <list>
+#include <iterator>
 
 #define WIDTH_MAP 15
+#define HEIGHT_MAP 20
 
 using namespace sf;
 
-String tileMap = "s1111s111s1111s11s1s";
+String tileMap = "s2121s101s1010s01s0s";
+
+class Enemy {
+private:
+	Sprite sprite;
+	String name;
+	int pxSize;
+	float speed;
+	int dir;
+	float respTime;
+	std::list<Sprite> carsOnline;
+	float lastTime;
+
+
+public:
+	Enemy(Sprite enemySprite, int x, int y, int dir, String name) {
+		this->sprite = enemySprite;
+		this->sprite.setPosition(x, y);
+		this->dir = dir;
+		speed = 0.1;
+		respTime = 1000;
+		this->name = name;
+		if (this->name == "Easy") {
+			sprite.setTextureRect(IntRect(0, 0, 32, 32));
+			pxSize = 32;
+			speed = 0.2;
+			respTime = 1200;
+		}
+		if (this->name == "Medium") {
+			sprite.setTextureRect(IntRect(32, 0, 64, 32));
+			pxSize = 64;
+			speed = 0.1;
+			respTime = 1800;
+		}
+		if (this->name == "Hard") {
+			sprite.setTextureRect(IntRect(96, 0, 96, 32));
+			pxSize = 96;
+			speed = 0.05;
+			respTime = 6000;
+		}
+	}
+
+	void update(float &time, RenderWindow &windows) {
+		if (lastTime < 0) {
+			carsOnline.push_back(sprite);
+			lastTime = respTime;
+		}
+		else {
+			lastTime -= time;
+		}
+		for (std::list<Sprite>::iterator it = carsOnline.begin(); it != carsOnline.end(); it++) {
+			(*it).move(dir*speed*time, 0);
+			windows.draw(*it);
+			if (((*it).getPosition().x < -pxSize) || ((*it).getPosition().x > 480)) {
+				it = carsOnline.erase(it);
+			}
+		}
+	}
+
+
+
+};
+
 
 class Frog
 {
@@ -32,7 +98,7 @@ public:
 		return sprite;
 	}
 
-	void update() {
+	void update(RenderWindow &window) {
 
 		if (Keyboard::isKeyPressed(Keyboard::Up)) {
 			if (isPressed[0] == false) {
@@ -71,13 +137,15 @@ public:
 			isPressed[3] = false;
 		}
 
+		window.draw(sprite);
+
 	}
 
 };
 
 int main()
 {
-	RenderWindow window(VideoMode(480, 640), "Practic Frogger");
+	RenderWindow window(VideoMode(480, 640), "Practic Frogger", Style::Close);
 
 	Image mapImage;
 	mapImage.loadFromFile("images/Map.bmp");
@@ -85,7 +153,28 @@ int main()
 	mapTexture.loadFromImage(mapImage);
 	Sprite sMap;
 	sMap.setTexture(mapTexture);
+
+	Image enemyImage;
+	enemyImage.loadFromFile("images/Enemies.bmp");
+	Texture enemyTexture;
+	enemyTexture.loadFromImage(enemyImage);
+	Sprite enemySprite;
+	enemySprite.setTexture(enemyTexture);
+
+	std::vector<Enemy> mapEnemies;
 	
+	for (int i = 0; i < HEIGHT_MAP; i++) {
+		if (tileMap[i] == '0') {
+			mapEnemies.push_back(Enemy(enemySprite, -32, i * 32, 1, "Easy"));
+		}
+		if (tileMap[i] == '1') {
+			mapEnemies.push_back(Enemy(enemySprite, -64, i * 32, 1, "Medium"));
+		}
+		if (tileMap[i] == '2') {
+			mapEnemies.push_back(Enemy(enemySprite, -96, i * 32, 1, "Hard"));
+		}
+	}
+
 	Clock clock;
 	float time = 0;
 	Frog frog;
@@ -105,14 +194,14 @@ int main()
 
 	
 		
-		std::cout << frog.getSprite().getPosition().x << " " << frog.getSprite().getPosition().y << std::endl;
+		//std::cout << frog.getSprite().getPosition().x << " " << frog.getSprite().getPosition().y << std::endl;
 		window.clear();
 		int h = 0;
 		for (char tile : tileMap) {
 			if (tile == 's') {
 				sMap.setTextureRect(IntRect(0, 0, 32, 32));
 			}
-			if (tile == '1') {
+			if (isdigit(tile)) {
 				sMap.setTextureRect(IntRect(32, 0, 32, 32));
 			}
 
@@ -122,8 +211,10 @@ int main()
 			}
 			h++;
 		}
-		frog.update();
-		window.draw(frog.getSprite());
+		for (Enemy &roadEnemy : mapEnemies) {
+			roadEnemy.update(time, window);
+		}
+		frog.update(window);
 		window.display();
 	}
 
