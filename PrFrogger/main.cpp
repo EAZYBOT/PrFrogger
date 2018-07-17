@@ -9,7 +9,7 @@
 
 using namespace sf;
 
-String tileMap = "s2121s101s1010s01s0s";
+String tileMap = "s2121s101s1010s01s2s";
 
 class Enemy {
 private:
@@ -51,7 +51,7 @@ public:
 		}
 	}
 
-	void update(float &time, RenderWindow &windows) {
+	void update(float &time, RenderWindow &windows, Sprite frog, bool &alive) {
 		if (lastTime < 0) {
 			carsOnline.push_back(sprite);
 			lastTime = respTime;
@@ -60,6 +60,12 @@ public:
 			lastTime -= time;
 		}
 		for (std::list<Sprite>::iterator it = carsOnline.begin(); it != carsOnline.end(); it++) {
+			if ((frog.getPosition().x > (*it).getPosition().x + 3) && (frog.getPosition().x < (*it).getPosition().x + pxSize - 3) ||
+				(frog.getPosition().x + 32 >(*it).getPosition().x + 3) && (frog.getPosition().x + 32 < (*it).getPosition().x + pxSize - 3)) {
+				if (frog.getPosition().y == (*it).getPosition().y) {
+					alive = false;
+				}
+			}
 			(*it).move(dir*speed*time, 0);
 			windows.draw(*it);
 			if (((*it).getPosition().x < -pxSize) || ((*it).getPosition().x > 480)) {
@@ -79,7 +85,6 @@ private:
 	Image image;
 	Texture texture;
 	Sprite sprite;
-	bool alive;
 	bool isPressed[4];
 
 public:
@@ -88,8 +93,7 @@ public:
 		texture.loadFromImage(image);
 		sprite.setTexture(texture);
 		sprite.setPosition(224, 608);
-		alive = true;
-		for (bool f : isPressed) {
+		for (bool &f : isPressed) {
 			f = false;
 		}
 	}
@@ -137,6 +141,19 @@ public:
 			isPressed[3] = false;
 		}
 
+		if (sprite.getPosition().x < 0) {
+			sprite.move(32, 0);
+		}
+		if (sprite.getPosition().y < 0) {
+			sprite.move(0, 32);
+		}
+		if (sprite.getPosition().x > 448) {
+			sprite.move(-32, 0);
+		}
+		if (sprite.getPosition().y > 608) {
+			sprite.move(0, -32);
+		}
+
 		window.draw(sprite);
 
 	}
@@ -163,6 +180,8 @@ int main()
 
 	std::vector<Enemy> mapEnemies;
 	
+	bool alive = true;
+
 	for (int i = 0; i < HEIGHT_MAP; i++) {
 		if (tileMap[i] == '0') {
 			mapEnemies.push_back(Enemy(enemySprite, -32, i * 32, 1, "Easy"));
@@ -176,8 +195,14 @@ int main()
 	}
 
 	Clock clock;
-	float time = 0;
+	float time = 100;
 	Frog frog;
+
+	for (int i = 0; i < 100; i++) {
+		for (Enemy &roadEnemy : mapEnemies) {
+			roadEnemy.update(time, window, frog.getSprite(), alive);
+		}
+	}
 
 	while (window.isOpen())
 	{
@@ -192,9 +217,6 @@ int main()
 				window.close();
 		}
 
-	
-		
-		//std::cout << frog.getSprite().getPosition().x << " " << frog.getSprite().getPosition().y << std::endl;
 		window.clear();
 		int h = 0;
 		for (char tile : tileMap) {
@@ -212,9 +234,11 @@ int main()
 			h++;
 		}
 		for (Enemy &roadEnemy : mapEnemies) {
-			roadEnemy.update(time, window);
+			roadEnemy.update(time, window, frog.getSprite(), alive);
 		}
-		frog.update(window);
+		if (alive == true) {
+			frog.update(window);
+		}
 		window.display();
 	}
 
