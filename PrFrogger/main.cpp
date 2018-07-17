@@ -3,6 +3,7 @@
 #include <vector>
 #include <list>
 #include <iterator>
+#include <ctime>
 
 #define WIDTH_MAP 15
 #define HEIGHT_MAP 20
@@ -28,6 +29,7 @@ public:
 		this->sprite = enemySprite;
 		this->sprite.setPosition(x, y);
 		this->dir = dir;
+		int deltResp = rand() % 1500;
 		speed = 0.1;
 		respTime = 1000;
 		this->name = name;
@@ -35,19 +37,19 @@ public:
 			sprite.setTextureRect(IntRect(0, 0, 32, 32));
 			pxSize = 32;
 			speed = 0.2;
-			respTime = 1200;
+			respTime = 1000 + deltResp;
 		}
 		if (this->name == "Medium") {
 			sprite.setTextureRect(IntRect(32, 0, 64, 32));
 			pxSize = 64;
 			speed = 0.1;
-			respTime = 1800;
+			respTime = 2400 + deltResp;
 		}
 		if (this->name == "Hard") {
 			sprite.setTextureRect(IntRect(96, 0, 96, 32));
 			pxSize = 96;
 			speed = 0.05;
-			respTime = 6000;
+			respTime = 5500 + deltResp;
 		}
 	}
 
@@ -68,7 +70,7 @@ public:
 			}
 			(*it).move(dir*speed*time, 0);
 			windows.draw(*it);
-			if (((*it).getPosition().x < -pxSize) || ((*it).getPosition().x > 480)) {
+			if (((*it).getPosition().x < -96) || ((*it).getPosition().x > 480)) {
 				it = carsOnline.erase(it);
 			}
 		}
@@ -182,15 +184,28 @@ int main()
 	
 	bool alive = true;
 
+	srand(time(0));
+	bool dirF;
+	int respX;
+	int dir;
 	for (int i = 0; i < HEIGHT_MAP; i++) {
+		dirF = rand() % 2;
+		if (dirF) {
+			respX = -96;
+			dir = 1;
+		}
+		else {
+			respX = 480;
+			dir = -1;
+		}
 		if (tileMap[i] == '0') {
-			mapEnemies.push_back(Enemy(enemySprite, -32, i * 32, 1, "Easy"));
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Easy"));
 		}
 		if (tileMap[i] == '1') {
-			mapEnemies.push_back(Enemy(enemySprite, -64, i * 32, 1, "Medium"));
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Medium"));
 		}
 		if (tileMap[i] == '2') {
-			mapEnemies.push_back(Enemy(enemySprite, -96, i * 32, 1, "Hard"));
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Hard"));
 		}
 	}
 
