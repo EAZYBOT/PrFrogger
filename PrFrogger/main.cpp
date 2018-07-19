@@ -347,7 +347,6 @@ int main()
 	timer.restart();
 	while (window.isOpen())
 	{
-		std::cout << timer.getElapsedTime().asSeconds() << std::endl;
 		time = clock.getElapsedTime().asMicroseconds();
 		clock.restart();
 		time = time / 800;
