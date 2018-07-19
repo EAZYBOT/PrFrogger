@@ -13,7 +13,14 @@
 
 using namespace sf;
 
+int gameTime = 0;
 String tileMap = "s2121s101s1010s01s0s";
+String endgameString;
+bool fShow = true;
+bool win = false;
+bool resetGame = false;
+bool reset = false;
+Clock timer;
 
 class Enemy {
 private:
@@ -105,6 +112,10 @@ public:
 
 	Sprite getSprite() {
 		return sprite;
+	}
+
+	void restart() {
+		sprite.setPosition(224, 608);
 	}
 
 	void update(RenderWindow &window) {
@@ -215,6 +226,85 @@ void menu(RenderWindow & window, Font &font) {
 	}
 }
 
+void updateEnemies(std::vector<Enemy> &mapEnemies, Sprite &enemySprite, RenderWindow &window) {
+	mapEnemies.clear();
+	float time = 100;
+	bool temp = true;
+	Sprite tempSprite;
+	bool dirF;
+	int respX;
+	int dir;
+	for (int i = 0; i < HEIGHT_MAP; i++) {
+		dirF = rand() % 2;
+		if (dirF) {
+			respX = -96;
+			dir = 1;
+		}
+		else {
+			respX = 480;
+			dir = -1;
+		}
+		if (tileMap[i] == '0') {
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Easy"));
+		}
+		if (tileMap[i] == '1') {
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Medium"));
+		}
+		if (tileMap[i] == '2') {
+			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Hard"));
+		}
+
+		for (int i = 0; i < 100; i++) {
+			for (Enemy &roadEnemy : mapEnemies) {
+				roadEnemy.update(time, window, tempSprite, temp);
+			}
+		}
+	}
+}
+
+void endgame(Text &endgameText, RenderWindow &window) {
+	std::ostringstream endgame_ss;
+	endgameText.setFillColor(Color::Red);
+	if (fShow) {
+		gameTime = timer.getElapsedTime().asSeconds();
+		fShow = false;
+	}
+	if (win) {
+		endgameText.setString("Победа!");
+		endgameText.setPosition(CENTER_X - 85, CENTER_Y - 130);
+	}
+	else {
+		endgameText.setString("Поражение!");
+		endgameText.setPosition(CENTER_X - 125, CENTER_Y - 130);
+	}
+	endgame_ss << "Время: " << gameTime << "  сек.";
+	endgameText.setCharacterSize(50);
+	window.draw(endgameText);
+	endgameText.setString(endgame_ss.str());
+	endgameText.setCharacterSize(36);
+	endgameText.setPosition(CENTER_X - 105, CENTER_Y);
+	window.draw(endgameText);
+
+	resetGame = false;
+
+	if (IntRect(CENTER_X - 60, CENTER_Y + 85, 120, 45).contains(Mouse::getPosition(window))) { 
+		endgameText.setFillColor(Color::Blue); 
+		resetGame = true;
+	}
+
+	endgameText.setString("Заново");
+	endgameText.setCharacterSize(40);
+	endgameText.setPosition(CENTER_X - 60, CENTER_Y + 85);
+	window.draw(endgameText);
+
+	if (Mouse::isButtonPressed(Mouse::Left))
+	{
+		if (resetGame) {
+			reset = true;
+		}
+	}
+}
+
 int main()
 {
 	RenderWindow window(VideoMode(480, 640), "Practic Frogger", Style::Close);
@@ -247,46 +337,17 @@ int main()
 	bool alive = true;
 
 	srand(time(0));
-	bool dirF;
-	int respX;
-	int dir;
-	for (int i = 0; i < HEIGHT_MAP; i++) {
-		dirF = rand() % 2;
-		if (dirF) {
-			respX = -96;
-			dir = 1;
-		}
-		else {
-			respX = 480;
-			dir = -1;
-		}
-		if (tileMap[i] == '0') {
-			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Easy"));
-		}
-		if (tileMap[i] == '1') {
-			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Medium"));
-		}
-		if (tileMap[i] == '2') {
-			mapEnemies.push_back(Enemy(enemySprite, respX, i * 32, dir, "Hard"));
-		}
-	}
 
 	Clock clock;
 	float time = 100;
 	Frog frog;
 	int gameTime = 0;
 
-	std::ostringstream endgame_ss;
-	for (int i = 0; i < 100; i++) {
-		for (Enemy &roadEnemy : mapEnemies) {
-			roadEnemy.update(time, window, frog.getSprite(), alive);
-		}
-	}
-	bool fShow = true;
-	bool win = false;
-	Clock timer;
+	updateEnemies(mapEnemies, enemySprite, window);
+	timer.restart();
 	while (window.isOpen())
 	{
+		std::cout << timer.getElapsedTime().asSeconds() << std::endl;
 		time = clock.getElapsedTime().asMicroseconds();
 		clock.restart();
 		time = time / 800;
@@ -323,38 +384,25 @@ int main()
 			}
 		}
 		else {
-			if (fShow) {
-				gameTime = timer.getElapsedTime().asSeconds();
-				endgame_ss << "Время: " << gameTime << "  сек.";
-				fShow = false;
-			}
-			endgameText.setString("Поражение!");
-			endgameText.setCharacterSize(50);
-			endgameText.setPosition(CENTER_X - 125, CENTER_Y - 130);
-			window.draw(endgameText);
-			endgameText.setString(endgame_ss.str());
-			endgameText.setCharacterSize(36);
-			endgameText.setPosition(CENTER_X - 105, CENTER_Y);
-			window.draw(endgameText);
+			endgame(endgameText, window);
 		}
 		if (frog.getSprite().getPosition().y == 0) {
 			win = true;
 		}
 		if (win) {
-			if (fShow) {
-				gameTime = timer.getElapsedTime().asSeconds();
-				endgame_ss << "Время: " << gameTime << "  сек.";
-				fShow = false;
-			}
-			endgameText.setString("Победа!");
-			endgameText.setCharacterSize(50);
-			endgameText.setPosition(CENTER_X - 85, CENTER_Y - 130);
-			window.draw(endgameText);
-			endgameText.setString(endgame_ss.str());
-			endgameText.setCharacterSize(36);
-			endgameText.setPosition(CENTER_X - 105, CENTER_Y);
-			window.draw(endgameText);
+			endgame(endgameText, window);
 			window.draw(frog.getSprite());
+		}
+		if (reset) {
+			updateEnemies(mapEnemies, enemySprite, window);
+			timer.restart();
+			alive = true;
+			fShow = true;
+			win = false;
+			resetGame = false;
+			gameTime = 0;
+			frog.restart();
+			reset = false;
 		}
 		window.display();
 	}
