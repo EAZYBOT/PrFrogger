@@ -4,13 +4,16 @@
 #include <list>
 #include <iterator>
 #include <ctime>
+#include <sstream>
 
 #define WIDTH_MAP 15
 #define HEIGHT_MAP 20
+#define CENTER_X 240
+#define CENTER_Y 320
 
 using namespace sf;
 
-String tileMap = "s2121s101s1010s01s2s";
+String tileMap = "s2121s101s1010s01s0s";
 
 class Enemy {
 private:
@@ -162,9 +165,68 @@ public:
 
 };
 
+void menu(RenderWindow & window, Font &font) {
+	Texture menuTexture1, menuTexture2;
+	menuTexture1.loadFromFile("images/newgame.png");
+	menuTexture2.loadFromFile("images/exit.png");
+	Sprite menu1(menuTexture1), menu2(menuTexture2);
+	Text logo("", font, 100);
+	logo.setStyle(Text::Bold);
+	logo.setFillColor(Color::Red);
+
+	bool isMenu = 1;
+	int menuNum = 0;
+	menu1.setPosition(100, CENTER_Y + 150);
+	menu2.setPosition(100, CENTER_Y + 200);
+
+	while (isMenu && window.isOpen())
+	{
+		Event event;
+		while (window.pollEvent(event))
+		{
+			if (event.type == Event::Closed)
+				window.close();
+		}
+		menu1.setColor(Color::White);
+		menu2.setColor(Color::White);
+		menuNum = 0;
+		window.clear(Color(129, 181, 221));
+
+		if (IntRect(100, CENTER_Y + 150, 300, 50).contains(Mouse::getPosition(window))) { menu1.setColor(Color::Blue); menuNum = 1; }
+		if (IntRect(100, CENTER_Y + 200, 300, 50).contains(Mouse::getPosition(window))) { menu2.setColor(Color::Blue); menuNum = 2; }
+
+		if (Mouse::isButtonPressed(Mouse::Left))
+		{
+			if (menuNum == 1) isMenu = false;//если нажали первую кнопку, то выходим из меню 
+			if (menuNum == 2) { window.close(); isMenu = false; }
+
+		}
+
+		logo.setPosition(CENTER_X - 150, CENTER_Y - 300);
+		logo.setString("Practic");
+		window.draw(logo);
+		logo.setPosition(CENTER_X - 154, CENTER_Y - 210);
+		logo.setString("Frogger");
+		window.draw(logo);
+		window.draw(menu1);
+		window.draw(menu2);
+
+		window.display();
+	}
+}
+
 int main()
 {
 	RenderWindow window(VideoMode(480, 640), "Practic Frogger", Style::Close);
+
+	Font font;
+	font.loadFromFile("CyrilicOld.ttf");
+
+	menu(window, font);
+
+	Text endgameText("", font, 50);
+	endgameText.setStyle(Text::Bold);
+	endgameText.setFillColor(Color::Red);
 
 	Image mapImage;
 	mapImage.loadFromFile("images/Map.bmp");
@@ -212,13 +274,17 @@ int main()
 	Clock clock;
 	float time = 100;
 	Frog frog;
+	int gameTime = 0;
 
+	std::ostringstream endgame_ss;
 	for (int i = 0; i < 100; i++) {
 		for (Enemy &roadEnemy : mapEnemies) {
 			roadEnemy.update(time, window, frog.getSprite(), alive);
 		}
 	}
-
+	bool fShow = true;
+	bool win = false;
+	Clock timer;
 	while (window.isOpen())
 	{
 		time = clock.getElapsedTime().asMicroseconds();
@@ -252,7 +318,43 @@ int main()
 			roadEnemy.update(time, window, frog.getSprite(), alive);
 		}
 		if (alive == true) {
-			frog.update(window);
+			if (win == false) {
+				frog.update(window);
+			}
+		}
+		else {
+			if (fShow) {
+				gameTime = timer.getElapsedTime().asSeconds();
+				endgame_ss << "Время: " << gameTime << "  сек.";
+				fShow = false;
+			}
+			endgameText.setString("Поражение!");
+			endgameText.setCharacterSize(50);
+			endgameText.setPosition(CENTER_X - 125, CENTER_Y - 130);
+			window.draw(endgameText);
+			endgameText.setString(endgame_ss.str());
+			endgameText.setCharacterSize(36);
+			endgameText.setPosition(CENTER_X - 105, CENTER_Y);
+			window.draw(endgameText);
+		}
+		if (frog.getSprite().getPosition().y == 0) {
+			win = true;
+		}
+		if (win) {
+			if (fShow) {
+				gameTime = timer.getElapsedTime().asSeconds();
+				endgame_ss << "Время: " << gameTime << "  сек.";
+				fShow = false;
+			}
+			endgameText.setString("Победа!");
+			endgameText.setCharacterSize(50);
+			endgameText.setPosition(CENTER_X - 85, CENTER_Y - 130);
+			window.draw(endgameText);
+			endgameText.setString(endgame_ss.str());
+			endgameText.setCharacterSize(36);
+			endgameText.setPosition(CENTER_X - 105, CENTER_Y);
+			window.draw(endgameText);
+			window.draw(frog.getSprite());
 		}
 		window.display();
 	}
